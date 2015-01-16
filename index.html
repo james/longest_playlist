@@ -1,0 +1,88 @@
+<input type="text" id="id" value="PL4lEESSgxM_5O81EvKCmBIm_JT5Q7JeaI" />
+<input type="submit" id="submit" value="Load" />
+
+<table id="results">
+
+<table>
+
+<script type="text/javascript">
+  var start = 1,
+    index = 0,
+    matches = [],
+    results = document.getElementById('results');
+
+function load(url, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                callback(JSON.parse(xhr.responseText));
+            } else {
+                callback([{}]);
+            }
+        }
+    };
+    xhr.send();
+}
+
+function loadPage(id) {
+    if (!id) {
+        id = document.getElementById('id').value;
+    }
+    load('https://gdata.youtube.com/feeds/api/playlists/' + id + '?alt=jsonc&v=2&start-index=' + start + '&max-results=50', function (e) {
+        console.log('loadPage', e);
+        if (e.data) {
+            searchSpotify(e.data.items);
+        }
+    });
+}
+
+function searchSpotify(items) {
+    var name = items[index].video.title || [];
+    name = name.match(/[\w']+/g)
+        .join(' ')
+        .replace(/official/ig, '')
+        .replace(/featuring/ig, '')
+        .replace(/feat/ig, '')
+        .replace(/video/ig, '')
+        .replace(/1080p/ig, '')
+        .replace(/19\d\d/ig, '')
+        .replace(/wmv/ig, '')
+        .replace(/music/ig, '');
+
+    load('http://ws.spotify.com/search/1/track.json?q=' + encodeURIComponent(name), function (e) {
+        if (e.tracks && e.tracks[0]) {
+            console.log('success', name, e);
+            // success
+            matches.push(e.tracks[0]);
+            results.innerHTML +=
+                '<tr><td>' +
+                name + '</td><td>' +
+                e.tracks[0].artists[0].name + '</td><td>' +
+                e.tracks[0].name + '</td><td>' +
+                e.tracks[0].href + '<td></tr>';
+        } else {
+            console.log('failt', name, e);
+            // fail
+            results.innerHTML += '<tr><td>' + name + '</td><td><td></tr>';
+        }
+
+        if (index < items.length - 1) {
+            index += 1;
+            searchSpotify(items);
+        } else {
+            console.log(matches);
+            start += 50;
+            index = 0;
+            loadPage();
+        }
+    });
+}
+
+document.getElementById('submit').addEventListener('click', function () {
+    index = 0;
+    matches = [];
+    loadPage();
+});
+</script>
